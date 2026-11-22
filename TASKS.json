@@ -34,13 +34,14 @@
     {
       "id": "S2",
       "title": "الذاكرة والـ Handoffs",
-      "status": "pending",
+      "status": "done",
+      "approved": "[STAGE_APPROVED S2] 2026-11-23 00:30 — run_tests.cmd all: 118 OK, 0 skipped, VERIFY: CLEAN (files=164)؛ بانتظار مراجعة البوصلة + تطبيق AGENTS.md:143 + commit/push",
       "gate": "run_tests.cmd all → [STAGE_APPROVED S2] → البوصلة push",
       "tasks": [
-        {"id": "T8", "red": true, "status": "pending", "title": "gateway-service → memory/gateway-service (بدون CONVERSATIONS_*/LEDGER)", "acceptance": "manifest يذكر المرفوض بالاسم؛ 0 DENY_READ فُتح"},
-        {"id": "T9", "red": true, "status": "pending", "title": "Bolla-Agentic-OS → memory/bolla-agentic-os", "acceptance": "نفس T8"},
-        {"id": "T10", "red": true, "status": "pending", "title": "D:\\SMS + scratch → memory/sms-root, memory/scratch", "acceptance": "نفس T8"},
-        {"id": "T11", "red": true, "status": "pending", "title": "profile/DECISIONS + MISTAKES + ANCHORS + memory/INDEX.md", "acceptance": "all ناجح"}
+        {"id": "T8", "red": true, "status": "done", "accepted": "2026-11-22 22:20 — 35 ملفاً، 13 HIGH_ENTROPY مثبّتة بالهاش، 118 OK، VERIFY CLEAN، idempotent، المانيفست يذكر المرفوض بالاسم", "title": "gateway-service → memory/gateway-service (بدون CONVERSATIONS_*/LEDGER)", "acceptance": "manifest يذكر المرفوض بالاسم؛ 0 DENY_READ فُتح"},
+        {"id": "T9", "red": true, "status": "done", "accepted": "2026-11-22 23:00 — 15 ملفاً، keys.example.txt مرفوض بالاسم (DENY_READ)، 2 HIGH_ENTROPY مثبّتة بالهاش، 118 OK، VERIFY CLEAN (154)، idempotent", "title": "Bolla-Agentic-OS → memory/bolla-agentic-os", "acceptance": "نفس T8"},
+        {"id": "T10", "red": true, "status": "done", "accepted": "2026-11-23 00:05 — sms-root 4 ملفات (4 HIGH_ENTROPY مثبّتة بالهاش) + scratch 3 ملفات، المشي من .agents/memory فقط (لا كود/لا .git/لا تكرار ذاتي)، 118 OK، VERIFY CLEAN (161)، idempotent", "title": "D:\\SMS + scratch → memory/sms-root, memory/scratch", "acceptance": "نفس T8"},
+        {"id": "T11", "red": true, "status": "done", "accepted": "2026-11-23 00:30 — profile/DECISIONS (42) + MISTAKES (29) + ANCHORS (21، 71 رابطاً) + memory/INDEX.md (57 رابطاً، 0 مكسور)، grep PII/مسارات = 0، 118 OK، 0 skipped، VERIFY CLEAN (164). بند مُسلَّم للبوصلة: AGENTS.md:143 backticks→روابط (محجوب ميكانيكياً على المخطط والمنفذ)", "title": "profile/DECISIONS + MISTAKES + ANCHORS + memory/INDEX.md", "acceptance": "all ناجح"}
       ]
     },
     {

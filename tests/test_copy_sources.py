@@ -42,6 +42,16 @@ def tree_files(root):
     return sorted(p.relative_to(root).as_posix() for p in Path(root).rglob("*") if p.is_file())
 
 
+def hex32_nonce():
+    """32 hex chars assembled at runtime; Shannon entropy ~3.9 < ENTROPY_THRESHOLD (never an entropy hit)."""
+    return ("a1b2c3d4" + "e5f60718") * 2
+
+
+def high_entropy_value():
+    """36 mixed-case alnum chars, assembled at runtime; not hex/uuid, matches no secret pattern."""
+    return "Qz7" + "mW2pL" + "kX9vB" + "nR4tY" + "hJ6cF" + "dG1sA" + "uE8oI" + "wN3" + "Vb5"
+
+
 class TestCopySources(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -139,6 +149,45 @@ class TestCopySources(unittest.TestCase):
         self.assertEqual(rep1.summary(), rep2.summary())
         self.assertEqual(mt1["a.md"], (self.dst / "a.md").stat().st_mtime_ns)
         self.assertEqual(snap1["a.md"], "line\n\n\nend\n")
+
+    def test_hash_pinned_high_entropy_redaction(self):
+        value = high_entropy_value()
+        body = "value one " + value + " here\nand again " + value + "\n"
+        put(self.src, "notes.md", body)
+        # without a pinned hash: recorded as entropy hits, value kept verbatim
+        rep = cs.copy_tree(self.src, self.dst, dry_run=True)
+        self.assertEqual(len(rep.entropy_hits), 2)
+        self.assertNotIn("HIGH_ENTROPY", rep.counts)
+        self.assertTrue(rep.ok)
+        # with the pinned hash: every occurrence redacted, counted, dropped from entropy_hits
+        rep = cs.copy_tree(self.src, self.dst, redact_value_hashes={vaultlib.sha256_text(value)})
+        out = vaultlib.read_text(self.dst / "notes.md")
+        self.assertNotIn(value, out)
+        self.assertEqual(out.count("[REDACTED:HIGH_ENTROPY]"), 2)
+        self.assertEqual(rep.counts["HIGH_ENTROPY"], 2)
+        self.assertEqual(rep.entropy_hits, [])
+        self.assertEqual(rep.copied[0]["redactions"], 2)
+        self.assertNotIn(value, vaultlib.read_text(self.dst / "manifest.json"))
+        self.assertTrue(rep.ok)
+        # copy_file honours the same parameter
+        rep2 = cs.copy_file(self.src / "notes.md", self.dst / "single", "notes.md",
+                            redact_value_hashes={vaultlib.sha256_text(value)})
+        self.assertEqual(rep2.counts["HIGH_ENTROPY"], 2)
+        self.assertNotIn(value, vaultlib.read_text(self.dst / "single" / "notes.md"))
+
+    def test_hash_pinned_hex32_below_threshold_redacted(self):
+        value = hex32_nonce()
+        put(self.src, "link.md", "magic link fragment " + value + " expires soon\n")
+        rep = cs.copy_tree(self.src, self.dst, dry_run=True)
+        self.assertEqual(rep.entropy_hits, [])  # below the threshold: the entropy pass never reports it
+        self.assertNotIn("HIGH_ENTROPY", rep.counts)
+        rep = cs.copy_tree(self.src, self.dst, redact_value_hashes={vaultlib.sha256_text(value)})
+        out = vaultlib.read_text(self.dst / "link.md")
+        self.assertNotIn(value, out)
+        self.assertEqual(out.count("[REDACTED:HIGH_ENTROPY]"), 1)
+        self.assertEqual(rep.counts["HIGH_ENTROPY"], 1)
+        self.assertEqual(rep.entropy_hits, [])
+        self.assertTrue(rep.ok)
 
     def test_cli_dry_run_exit_zero(self):
         put(self.src, "a.md", "x\n")

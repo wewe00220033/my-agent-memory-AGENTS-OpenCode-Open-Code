@@ -137,3 +137,76 @@
 - ملاحظة entropy واحدة في `README.md` = اسم الريبو نفسه (41 حرفاً، 4.01) — إيجابية كاذبة، بلا إجراء.
 - `TASKS.json`: T7 done، S1 done. `duet_resume.json`: `current_stage = S2`، `completed_tasks` حتى T7، `next_batch = [T8, T9, T10, T11]` + ملاحظات بدء S2 (كلها 🔴 مفردة بـ dry-run).
 - **[STAGE_APPROVED S1]** — توقف. البوصلة تراجع وتعمل commit بهوية noreply + push. التالي عند `تابع`: S2 بدءاً بـ T8 🔴.
+
+## [2026-11-22 21:20] mode=internal stage=S2 action=ASSIGN status=T8_DRYRUN_STARTED
+- البوصلة: S1 مرفوعة — commit `c85ec8c` على `main` (LOCAL == REMOTE)، `run_tests.cmd all` بعد الكوميت = VERIFY: CLEAN (files=103).
+- نطاق هذه الجولة: **T8 🔴 ثم T9 🔴 فقط**، كل منهما على مرحلتين (dry-run → مراجعة المخطط للمانيفست → كتابة فعلية)، ثم توقف قبل T10. ممنوع question/commit/push.
+- تكليف `executor` (نفس الجلسة) بـ T8 المرحلة الأولى: `tools/export_memory.py --project gateway-service --dry-run` — المصادر `Root/` (`.md` فقط، استبعاد `CONVERSATIONS_*`/`*LEDGER*`/`*FORENSIC*`) + `.agents/memory/` + ملفات الجذر الخمسة؛ المانيفست في `_local/manifests/S2/gateway-service.manifest.json`؛ لا كتابة في `memory/`.
+
+## [2026-11-22 21:35] mode=internal stage=S2 action=VERIFY status=T8_DRYRUN_REVIEWED_HOLD
+- dry-run gateway-service: TOTAL copied=35 (Root 12 + agents-memory 18 + جذر 5)، deny_read=4 (`ACCOUNT_FUNDING_REGISTER.md`, `crawler_user.session`, `keys.md`, `keys.txt` — الأربعة المتوقعة بالضبط، لم تُفتح)، deny_copy=0، sensitive=0، dedupe=0، errors=0، residual فارغ. تعقيمات 82 (EMAIL 26، PATH 39، KV_SECRET 13، PII 3، API_KEY 1). `memory/` لم يُمسّ؛ `unit` ناجح.
+- **نقطة قلق قبل الكتابة:** `entropy_hits=127` (CHANGELOG_DECISIONS 75، ANCHORS 32) والقمم بطول 40–44 وإنتروبيا 4.5–4.82 داخل inline code — أعلى بوضوح من ضجيج T6 (4.0–4.1). قد تكون hashes/ids غير مؤذية أو توكنات لم تلتقطها الأنماط → **أوقفت الكتابة الفعلية** وطلبت تقرير شكل (charset/flags/كلمات سياق/تكرار/نوع الكتلة) بلا أي قيم عبر سكربت مؤقت في `_local/`.
+- للعلم: 4 ملفات غير `.md` في `Root/` استُبعدت بقيد الامتداد (`PROGRESS.json`, `ai_state.json`, صورة png، ملف بلا امتداد) — متسق مع النطاق.
+
+## [2026-11-22 21:50] mode=internal stage=S2 action=ASSIGN status=T8_PHASE2_PINNED_REDACTION
+- تقرير الشكل (`_local/t8_entropy_shape.py`، بلا قيم): 127 إصابة → 102 بعد الفلتر (H≥4.3 أو len≥36)، 31 قيمة مميزة. الغالبية slugs/أسماء فروع kebab-case غير مؤذية (dig/let≈0.0–0.2، سياق واضح).
+- **~9 قيم مميزة (~12 سطراً) بشكل توكن opaque** بلا سياق مفسِّر: ثلاثي len=44 H=4.82 base64-url (CHANGELOG_DECISIONS:1896/1951 + root/radar_sheet_progress:3)، قيمة داخل fenced(python) في 00-EXAMPLES:91، session id، base64 قياسي. لا يمكن إثبات أنها غير مؤذية من الشكل وحده.
+- **القرار (Zero-Compromise + قابلية العكس):** لا سؤال يعطّل الجولة ولا نشر نص مشكوك فيه → تعمية هذه القيم بعينها مثبّتة بالهاش (`redact_value_hashes` اختياري في `copy_tree`/`copy_file`/`_process` → `[REDACTED:HIGH_ENTROPY]` لكل التكرارات، عدّاد `HIGH_ENTROPY`، تُحذف من `entropy_hits`) + اختبار واحد جديد + ملف مراجعة `_local/manifests/S2/gateway-service.review.json` (هاشات ومواقع فقط، غير مرفوع) ثم **الكتابة الفعلية** إلى `memory/gateway-service/`. ممنوع commit/push/فتح DENY_READ.
+- معيار القبول: `unit` ناجح (18+1)، `residual` فارغ، `entropy_hits` بعد التثبيت لا يحوي أياً من الهاشات، 35 ملفاً على القرص مطابقة للمانيفست. (تصحيح: `memory/INDEX.md` من نطاق T11 وفق PLAN — ليس معيار T8.)
+
+## [2026-11-22 22:05] mode=internal stage=S2 action=VERIFY status=T8_PHASE2_VERIFIED_WITH_ONE_GAP
+- تحقق مستقل: `run_tests.cmd all` → 117 OK + `VERIFY: CLEAN (files=139)`؛ `_hash_redact`/`redact_value_hashes` موجودة في `copy_sources.py` و`export_memory.py` كما وُصف؛ `gateway-service.review.json` = هاشات + مواقع فقط (10 هاشات / 12 موقعاً) بلا قيم؛ 35 ملفاً + `.gitkeep` على القرص؛ علامات `[REDACTED:HIGH_ENTROPY]` = 12 بالضبط (CHANGELOG 10 / 00-EXAMPLES 1 / radar_sheet 1) — مطابق لتقرير المنفذ.
+- **ثغرة واحدة (Major):** `00-EXAMPLES.md:91` ما زال يحوي nonce بصيغة hex32 داخل رابط `claude.ai/magic-link#<hex32>:…` — إنتروبيا hex32 القصوى 4.0 < العتبة 4.3 فمرّ. سر بشكله حتى لو منتهي → تكليف T8-3: تثبيته بالهاش (وتوسيع `_hash_redact` ليفحص التوكنات ≥32 بغض النظر عن الإنتروبيا إن لزم) + إعادة التصدير + idempotent + 118 OK.
+- للتسجيل لـ T2.1 (لا يعطّل T8): (أ) نمط URL fragment لروابط magic-link/token= يجب أن يصبح نمط تعمية صريحاً بدل الاعتماد على الإنتروبيا؛ (ب) `org_id` uuid في CHANGELOG:2750 وعنوان بروكسي IP في السطر 17 بقيا بتصميم الخطة (uuid/IP مستثنيان) — يُراجَع هل تُضاف قاعدة للـ IP:port.
+- ملاحظة شكلية: السطر 3193 عُمِّي اسم مجلد `scratch\…` (من القائمة المثبّتة) — غير مؤذٍ وقابل للعكس من ملف المراجعة.
+
+## [2026-11-22 22:20] mode=internal stage=S2 action=ACCEPT status=T8_ACCEPTED
+- T8-3 متحقق مستقلاً: grep `[0-9a-f]{32}` على `00-EXAMPLES.md` = 0؛ السطر 91 = علامتان؛ إجمالي `[REDACTED:HIGH_ENTROPY]` = 13 (CHANGELOG 10 / 00-EXAMPLES 2 / radar 1)؛ `_hash_redact` يفحص كل توكن `_TOKEN` بالهاش مباشرة بلا عتبة/استثناءات (copy_sources.py:133–159)؛ `run_tests.cmd all` → 118 OK + `VERIFY: CLEAN (files=139)`؛ idempotent ×2؛ ملف المراجعة 11 هاشاً / 13 موقعاً بلا قيم؛ المانيفست يذكر المرفوض بالاسم (ACCOUNT_FUNDING_REGISTER.md, crawler_user.session, keys.md, keys.txt)؛ 0 DENY_READ فُتح.
+- **T8 مقبول.** ما زال بلا commit — الرفع للبوصلة عند `[STAGE_APPROVED S2]`.
+- التالي وفق نطاق الجولة: T9 🔴 Bolla (dry-run أولاً) ثم STOP قبل T10.
+
+## [2026-11-22 22:30] mode=internal stage=S2 action=ASSIGN status=T9_PHASE1_DRYRUN
+- تكليف executor (نفس الجلسة) بـ T9-1: إضافة `PROJECTS["bolla-agentic-os"]` في `export_memory.py` (Root/ بدون `keys*` + `.agents/memory/` + ROOT_FILES، `.md` فقط) من `D:/SMS/Bolla-Agentic-OS-EGM-SRE` → dry-run فقط + تقرير شكل الإنتروبيا بلا قيم + `all` يبقى 118 OK. ممنوع الكتابة إلى memory/ أو فتح DENY_READ (`keys.example.txt` يجب أن يظهر مرفوضاً بالاسم).
+- القرار على القيم opaque (إن وُجدت) يكون بنفس آلية T8: تثبيت بالهاش في `_local/manifests/S2/bolla-agentic-os.review.json` قبل الكتابة الفعلية (T9-2).
+
+## [2026-11-22 22:45] mode=internal stage=S2 action=VERIFY status=T9_PHASE1_VERIFIED_ONE_GAP
+- dry-run متحقق: `copied=15` (root 5 / agents-memory 7 / جذرية 3) `redactions=1 (KV_SECRET)` `entropy_hits=1` `errors=0`؛ `memory/bolla-agentic-os/` = `.gitkeep` فقط؛ 118 OK + VERIFY CLEAN. `MISSING_ROOT_FILE HANDOFF/PROGRESS` معلوماتي فقط (موجودان تحت `Root/` ونُسخا).
+- **ثغرة (Major — معيار قبول):** `rejected_by_name.DENY_READ = []` — `keys.example.txt` لم يُسجَّل بالاسم لأن glob `keys*` في excludes يسبق فحص DENY_READ في `copy_tree` (copy_sources.py:268 قبل 270). **القرار: الخيار (أ)** إزالة `keys*` من excludes بولا — DENY_READ يلتقطه أصلاً (`is_denied_path=True`)، وهو نفس نموذج gateway ولا يغيّر سلوك `copy_tree`.
+- الإنتروبيا: مرشح opaque واحد `agents-memory/00-EXAMPLES.md:91` (len=40 H=4.50) + hex32 تحت العتبة في نفس السطر — كلاهما يطابق هاشَي magic-link المثبّتين في T8 → **القرار:** تثبيتهما في `bolla-agentic-os.review.json` بنفس الهاشين.
+- تكليف T9-2: التصحيحان + dry-run (متوقع deny_read=1 بالاسم، HIGH_ENTROPY=2) + كتابة فعلية ×2 idempotent + 118 OK.
+- للتسجيل لـ T2.1: ترتيب `_excluded` قبل DENY_READ في `copy_tree` يُسقط الممنوعات صامتاً إذا تطابقت مع glob — يُقترح فحص DENY_READ أولاً دائماً.
+
+## [2026-11-22 23:00] mode=internal stage=S2 action=ACCEPT status=T9_ACCEPTED_STOP_BEFORE_T10
+- T9-2 متحقق مستقلاً: المانيفست `rejected_by_name.DENY_READ = [keys.example.txt]` (سطر 276/307)؛ `00-EXAMPLES.md:91` = علامتان و0 hex32؛ 15 ملفاً + `.gitkeep` على القرص (root 5 / agents-memory 7 / جذرية 3)؛ `bolla-agentic-os.review.json` = هاشان بلا قيم (مطابقان لهاشَي magic-link في gateway)؛ `run_tests.cmd all` → 118 OK + `VERIFY: CLEAN (files=154)`؛ idempotent ×2؛ 0 DENY_READ فُتح.
+- ملاحظة شكلية: `root/ANCHORS.md` يحوي 60 بصمة SHA-256 (hex64) لملفات المشروع المصدر — مستثناة بتصميم الخطة (hex64 بلا كلمة مفتاحية)، ليست أسراراً؛ منها سطر لاسم `Root/keys.example.txt` كاسم ملف فقط بلا محتوى.
+- **T9 مقبول. STOP قبل T10 وفق نطاق الجولة.** S2 حتى الآن: T8 ✅ T9 ✅ — بلا commit. المتبقي في S2: T10 🔴 (`D:\SMS` + scratch) ثم T11 (profile/INDEX) ← بوابة `critic` LENS: fish ← `[STAGE_APPROVED S2]` ← رفع البوصلة.
+- تغييرات القرص غير المرفوعة: `tools/copy_sources.py` (hash-pinned redaction)، `tests/test_copy_sources.py` (+2 اختبار)، `tools/export_memory.py` (جديد)، `memory/gateway-service/` (35)، `memory/bolla-agentic-os/` (15). `_local/` كله متجاهَل في git.
+
+## [2026-11-22 23:20] mode=internal stage=S2 action=ASSIGN status=T10_PHASE1_DRYRUN (استئناف بأمر البوصلة)
+- نطاق البوصلة: T10 🔴 (مرحلتان) ← T11 (profile/DECISIONS+MISTAKES+ANCHORS + memory/INDEX.md + روابط AGENTS.md §5) ← بوابة S2 = `run_tests.cmd all` (critic في S5 وفق TASKS.json) ← `[STAGE_APPROVED S2]` ← توقف تام. ممنوع question/commit/push.
+- T10-1 مكلَّف (نفس جلسة executor): `sms-root` ← `D:/SMS/.agents/memory/` + `handoff.md` + `GEMINI_ARCHIVE_2026-09-02.md` فقط (BRIEF:45)؛ `scratch` ← `~/.gemini/antigravity/scratch/.agents/memory/` فقط (BRIEF:46). الاستبعاد بتصميم الإدخال (لا مشي شجرة D:/SMS أو scratch) → Zero Source Code / No Self-Recursion مضمونان بنيوياً. dry-run + تقرير إنتروبيا بلا قيم + 118 OK.
+
+## [2026-11-22 23:40] mode=internal stage=S2 action=VERIFY status=T10_PHASE1_VERIFIED → ASSIGN T10-2
+- تحقق مستقل: `sms-root.manifest.json`/`scratch.manifest.json` بـ `dry_run=true`، copied 4 / 3، `DENY_READ=[]` (لا ممنوعات بالاسم في هذين النطاقين — متوقع لأن المشي يقتصر على `.agents/memory` + ملفين جذريين)؛ `memory/sms-root/` و`memory/scratch/` = `.gitkeep` فقط؛ `export_memory.py:55–72` مطابق للتصميم (المشي من `src/.agents/memory` فقط)؛ `unit` ناجح (42+12+18)؛ المنفذ أبلغ 118 OK all.
+- sms-root: redactions=35 (KV_SECRET 29، PATH 3، EMAIL 2، API_KEY 1 — معظمها `GEMINI_ARCHIVE_2026-09-02.md`=32). scratch: redactions=13 (PATH 12، EMAIL 1)، 0 إنتروبيا.
+- **قرار التثبيت (نفس مبدأ T8، قابل للعكس):** sms-root 4 قيم → `sms-root.review.json`: CHANGELOG:202/203 (base64 محشو `=`، H≈4.8، opaque)، CHANGELOG:44 (base64-url len=46 بشكل معرّف — لا يُثبت براءته من الشكل)، handoff.md:224 (hex32 داخل URL، مضيف غير magic-link، تحت العتبة → LOW_PINS). scratch: لا review.
+- T10-2 مكلَّف: review + dry-run (متوقع HIGH_ENTROPY=4) + كتابة فعلية ×2 idempotent للمشروعين + verify_no_secrets على كل جذر + 118 OK.
+
+## [2026-11-23 00:05] mode=internal stage=S2 action=ACCEPT status=T10_ACCEPTED
+- تحقق مستقل: `run_tests.cmd all` → 118 OK + `VERIFY: CLEAN (files=161)`؛ `memory/sms-root/` = 4 + `.gitkeep`، `memory/scratch/` = 3 + `.gitkeep`؛ علامات `[REDACTED:HIGH_ENTROPY]` = 4 في المواقع الأربعة بالضبط (handoff:224 / CHANGELOG:44/202/203)؛ grep hex32 على `handoff.md` = 0؛ `sms-root.review.json` = 4 هاشات بلا قيم؛ idempotent ×2 (بصمات المانيفست متطابقة).
+- فحص ادعاء "copy_sources.py +49/−12": التوقيعات (`_hash_redact`:133، `_process`:162، `copy_file`:223، `copy_tree`:258) مطابقة لحالة T8-3 → الرقم فارق تراكمي مقابل HEAD وليس تعديلاً جديداً غير مكلَّف. مقبول.
+- 3 hex-42 متبقية في `GEMINI_ARCHIVE_2026-09-02.md:2057/2058/2096`: سياق صريح (`next-action` header لـ Next.js — معرّفات عامة في حزم العميل) → **benign بالسياق**، تُترك. تُسجَّل لـ T2.1 كنمط "معرّفات بناء عامة" حتى لا تظهر كمرشحات مستقبلاً.
+- **مخالفة إجرائية (Minor):** المنفذ طبع قيم الـhex-42 الثلاث خاماً في الشات رغم قاعدة "بلا قيم" — القيم غير سرية هنا، لكن تُذكَّر الجلسة بالقاعدة في تكليف T11.
+- **T10 مقبول.** S2: T8 ✅ T9 ✅ T10 ✅ → T11.
+
+## [2026-11-23 00:15] mode=internal stage=S2 action=ASSIGN status=T11
+- T11 مكلَّف (نفس الجلسة): `profile/DECISIONS.md` + `MISTAKES.md` + `ANCHORS.md` من `rules/`/`skills/`/`memory/**` المعقّمة فقط (صفر PII، أسماء مسموحة فقط، مسارات `~` فقط، بلا جداول، ≤60 KB) + ملء `memory/INDEX.md` بين علامتي AUTO-INDEX بروابط فعلية للمجلدات الأربعة (قرار المخطط: يدوياً الآن بملاحظة صادقة؛ `build_index.py` يبقى في S5 وفق AGENTS.md §6) + تحويل backticks السطر 143 في AGENTS.md §5 إلى روابط. التحقق: `all` 118 OK + VERIFY CLEAN + grep مسارات/إيميلات/هواتف = 0.
+
+## [2026-11-23 00:30] mode=internal stage=S2 action=ACCEPT status=T11_ACCEPTED → [STAGE_APPROVED S2]
+- تحقق مستقل T11: `run_tests.cmd all` → **118 OK، 0 skipped، `VERIFY: CLEAN (files=164)`** (شاملاً `test_index_links` و`test_sizes`)؛ grep `C:\\|D:\\|@|+20|01xxxxxxxxx|جداول` على `profile/{DECISIONS,MISTAKES,ANCHORS}.md` = 0؛ `memory/INDEX.md` مملوء بين علامتي AUTO-INDEX (57 رابطاً تحلّ كلها، ملاحظة صادقة عن `build_index.py` في S5)؛ `DECISIONS.md` كل قرار بمصدره كمسار نسبي؛ الأحجام 15.6/13.4/10.6/5.2 KB.
+- **بند مُسلَّم للبوصلة (Blocked ميكانيكياً على المنفذ والمخطط معاً — AGENTS.md مورد محمي):** السطر 143 في `AGENTS.md` §5 ما زال backticks. الاستبدال الجاهز: القديم ``· `profile/DECISIONS.md` · `profile/MISTAKES.md` · `profile/ANCHORS.md` (تُملأ في S2/T11).`` → الجديد `· [profile/DECISIONS.md](profile/DECISIONS.md) · [profile/MISTAKES.md](profile/MISTAKES.md) · [profile/ANCHORS.md](profile/ANCHORS.md).` — الملفات الثلاثة موجودة فالروابط ستحلّ و`test_index_links` سيبقى ناجحاً.
+- **بند ثانٍ للبوصلة (اختياري):** `profile/OWNER_PROFILE.md` §6 يقول "تُملأ في S2/T11" — صار قديماً؛ خارج نطاق T11 (يُحدَّث بسطر واحد أو يُترك لـ S5).
+- **S2 مكتملة: T8 ✅ T9 ✅ T10 ✅ T11 ✅.** الناتج غير المرفوع: `memory/{gateway-service 35, bolla-agentic-os 15, sms-root 4, scratch 3}` = 57 ملفاً، `memory/INDEX.md`، `profile/{DECISIONS,MISTAKES,ANCHORS}.md`، `tools/export_memory.py` (جديد)، `tools/copy_sources.py` (hash-pinned redaction)، `tests/test_copy_sources.py` (+2). `_local/` (مانيفستات + 3 review.json بالهاشات فقط) متجاهَل في git.
+- متراكم لـ T2.1 (أول S3): نمط صريح لـ URL fragment/token= بدل الإنتروبيا؛ قاعدة IP:port للبروكسيات؛ تقديم DENY_READ على `_excluded` في `copy_tree`؛ استثناء معرّفات البناء العامة (Next.js `next-action`)؛ + ملاحظات S1 السابقة (anchors الماركداون، KV_SECRET FP لاختصارات الكيبورد، `_PK_RESIDUE` FP، context_hint يسرّب bot ids).
+
+**[STAGE_APPROVED S2]** — متوقف تماماً بانتظار مراجعة البوصلة ورفع S2. لا commit/push/question من المخطط.

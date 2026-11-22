@@ -44,5 +44,5 @@
 - إعلان نجاح من غير اختبار · الحذف من السجلات · الترقيع بدل السبب الجذري · خلط DevOps بـ SRE · التوسع خارج نطاق الدفعة · تعديل كود من غير قراءته · جداول في الشات · طلب قيمة معقّمة من المالك.
 
 ## 6. التفاصيل اللاحقة / Coming next
-- `profile/DECISIONS.md` · `profile/MISTAKES.md` · `profile/ANCHORS.md` — تُملأ في S2/T11 من المحادثات والذاكرة.
+- [profile/DECISIONS.md](DECISIONS.md) · [profile/MISTAKES.md](MISTAKES.md) · [profile/ANCHORS.md](ANCHORS.md) — خلاصة القرارات والأخطاء ومراسي المشاريع.
 - المراجع: [rules/GEMINI.md](../rules/GEMINI.md) · [rules/dastoor_bolla_architect_sre.md](../rules/dastoor_bolla_architect_sre.md) · [rules/egm_protocol.md](../rules/egm_protocol.md) · [rules/arabic_keyboard_shortcuts.md](../rules/arabic_keyboard_shortcuts.md) · [skills/INDEX.md](../skills/INDEX.md) · [AGENTS.md](../AGENTS.md)

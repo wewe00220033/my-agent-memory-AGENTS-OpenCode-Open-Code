@@ -3,7 +3,9 @@
 Pipeline per file (PLAN 3 / 4, stdlib only; logic lives in tools/redact.py + tools/vaultlib.py):
   DENY_READ  (name or any path component)  -> never opened, recorded by name only
   DENY_COPY  (*.db, *.sqlite*, *-wal, *-shm, *.pb) -> skipped, recorded
-  read utf-8 -> NFC -> redact_text (two passes inside) -> whitespace cleanup
+  read utf-8 -> NFC -> redact_text (two passes inside) -> hash-pinned HIGH_ENTROPY redaction
+  (optional ``redact_value_hashes``: an entropy-detected token whose sha256 is in the set becomes
+  ``[REDACTED:HIGH_ENTROPY]``, counted under HIGH_ENTROPY and dropped from entropy_hits) -> whitespace cleanup
   unresolved private-key block -> SKIPPED_SENSITIVE (nothing written)
   residual secret match in the output -> error (nothing written, exit 1)
   > MAX_OUT_BYTES after redaction -> skipped_size
@@ -128,7 +130,37 @@ def _iter_sources(src_root: Path) -> List[str]:
 
 # --------------------------------------------------------------------------- core
 
-def _process(src_root: Path, rel: str, report: CopyReport) -> Optional[_Candidate]:
+def _hash_redact(text: str, hashes, counts: Counter, hits: List[dict]) -> str:
+    """Check every ``_TOKEN`` candidate (>= ENTROPY_MIN_LEN chars) in *text* against *hashes* and replace
+    each one whose ``sha256_text`` is pinned with ``[REDACTED:HIGH_ENTROPY]``. Pinning is explicit, so neither
+    the entropy threshold nor the hex/uuid exclusions of the record-only entropy pass apply here (a pinned
+    hex32 nonce below the threshold is still redacted). Each replacement is counted under HIGH_ENTROPY and
+    its (length, entropy) record, when the entropy pass reported one, is dropped from *hits*.
+    Values never leave this function: only the marker is written and only the hash is ever stored."""
+    out: List[str] = []
+    last = 0
+    for m in redact._TOKEN.finditer(text):
+        tok = m.group()
+        if vaultlib.sha256_text(tok) not in hashes:
+            continue
+        ent = redact.shannon_entropy(tok)
+        out.append(text[last:m.start()])
+        out.append(redact.marker("HIGH_ENTROPY"))
+        last = m.end()
+        counts["HIGH_ENTROPY"] += 1
+        key = (len(tok), round(ent, 3))
+        for i, h in enumerate(hits):
+            if (h["length"], h["entropy"]) == key:
+                del hits[i]
+                break
+    if not out:
+        return text
+    out.append(text[last:])
+    return "".join(out)
+
+
+def _process(src_root: Path, rel: str, report: CopyReport,
+             redact_value_hashes: Optional[set] = None) -> Optional[_Candidate]:
     p = src_root / rel
     text = _read_source(p)
     if text is None:
@@ -138,13 +170,18 @@ def _process(src_root: Path, rel: str, report: CopyReport) -> Optional[_Candidat
     if res.unresolved_private_key:
         report.skipped_sensitive.append(_safe(rel))
         return None
-    out = clean_whitespace(res.text)
+    counts: Counter = Counter(res.counts)
+    hits: List[dict] = list(res.entropy_hits)
+    redacted = res.text
+    if redact_value_hashes:
+        redacted = _hash_redact(redacted, redact_value_hashes, counts, hits)
+    out = clean_whitespace(redacted)
     left = redact.residual_matches(out)
     if left:
         raise redact.RedactionIncomplete("residual matches after redaction: %s" % ",".join(sorted(left)))
-    report.counts.update(res.counts)
+    report.counts.update(counts)
     safe_rel = _safe(rel)
-    for h in res.entropy_hits:
+    for h in hits:
         report.entropy_hits.append({"path": safe_rel, "length": h["length"], "entropy": h["entropy"],
                                     "context_hint": h["context_hint"]})
     size = vaultlib.utf8_len(out)
@@ -152,7 +189,7 @@ def _process(src_root: Path, rel: str, report: CopyReport) -> Optional[_Candidat
         report.skipped_size.append({"src": safe_rel, "bytes": size})
         return None
     return _Candidate(rel, _dst_rel(rel), out, vaultlib.sha256_text(out), p.stat().st_mtime,
-                      sum(res.counts.values()))
+                      sum(counts.values()))
 
 
 def _dedupe(cands: List[_Candidate], report: CopyReport) -> List[_Candidate]:
@@ -184,10 +221,10 @@ def _write_if_changed(dst: Path, text: str) -> None:
 
 
 def copy_file(src_path, dst_root, dst_rel: str, *, report: Optional[CopyReport] = None,
-              dry_run: bool = False) -> CopyReport:
+              dry_run: bool = False, redact_value_hashes: Optional[set] = None) -> CopyReport:
     """Run ONE file through the same pipeline as ``copy_tree`` (denylist on its name -> read ->
-    NFC -> redact -> unresolved PK -> residual -> whitespace -> size -> idempotent write).
-    Never writes a manifest. *dst_rel* is sanitized per path component."""
+    NFC -> redact -> hash-pinned HIGH_ENTROPY -> unresolved PK -> residual -> whitespace -> size ->
+    idempotent write). Never writes a manifest. *dst_rel* is sanitized per path component."""
     src_path, dst_root = Path(src_path), Path(dst_root).resolve()
     report = report if report is not None else CopyReport()
     name = src_path.name
@@ -201,7 +238,7 @@ def copy_file(src_path, dst_root, dst_rel: str, *, report: Optional[CopyReport] 
         report.errors.append({"src": _safe(name), "error": "FileNotFoundError: source missing"})
         return report
     try:
-        c = _process(src_path.parent, name, report)
+        c = _process(src_path.parent, name, report, redact_value_hashes)
     except (OSError, redact.RedactionIncomplete) as exc:
         report.errors.append({"src": _safe(name), "error": type(exc).__name__ + ": " + _safe(str(exc))})
         return report
@@ -220,7 +257,7 @@ def copy_file(src_path, dst_root, dst_rel: str, *, report: Optional[CopyReport] 
 
 def copy_tree(src_root, dst_root, *, include_exts: Optional[Iterable[str]] = None,
               exclude_globs: Sequence[str] = (), dry_run: bool = False, top_n: int = 20,
-              manifest_dir=None) -> CopyReport:
+              manifest_dir=None, redact_value_hashes: Optional[set] = None) -> CopyReport:
     src_root, dst_root = Path(src_root).resolve(), Path(dst_root).resolve()
     if not src_root.is_dir():
         raise FileNotFoundError("source root is not a directory: %s" % src_root.name)
@@ -239,7 +276,7 @@ def copy_tree(src_root, dst_root, *, include_exts: Optional[Iterable[str]] = Non
         if exts is not None and Path(rel).suffix.lower() not in exts:
             continue
         try:
-            c = _process(src_root, rel, report)
+            c = _process(src_root, rel, report, redact_value_hashes)
         except (OSError, redact.RedactionIncomplete) as exc:
             report.errors.append({"src": _safe(rel), "error": type(exc).__name__ + ": " + _safe(str(exc))})
             continue

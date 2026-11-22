@@ -140,7 +140,7 @@
 - التعامل مع كود موجود بدون قراءته أولاً، أو التوسع خارج نطاق الدفعة (Over-engineering).
 - اختصارات `Ctrl+حرف عربي` داخل الشات تتسرّب للمحرر.
 
-- التفصيل: [profile/OWNER_PROFILE.md](profile/OWNER_PROFILE.md) الآن · `profile/DECISIONS.md` · `profile/MISTAKES.md` · `profile/ANCHORS.md` (تُملأ في S2/T11).
+- التفصيل: [profile/OWNER_PROFILE.md](profile/OWNER_PROFILE.md) · [profile/DECISIONS.md](profile/DECISIONS.md) · [profile/MISTAKES.md](profile/MISTAKES.md) · [profile/ANCHORS.md](profile/ANCHORS.md).
 
 > EN: Security first, minimal footprint, no guessing, test before talk, root cause over symptom, isolated reviews, staged pushes under a noreply identity. Recurring mistakes to avoid: patch loops, DevOps/SRE confusion, chat tables, deleting from logs, skipping self-critique, editing unread code, scope creep.
 
