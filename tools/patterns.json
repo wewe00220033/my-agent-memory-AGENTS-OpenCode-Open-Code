@@ -1,0 +1,265 @@
+{
+  "allowlist": [
+    "زيزو",
+    "PHOENIX-9941",
+    "gateway-service",
+    "Bolla-Agentic-OS-EGM-SRE",
+    "SMS"
+  ],
+  "patterns": [
+    {
+      "category": "PRIVATE_KEY",
+      "name": "pem_block",
+      "regex": "-----B[E]GIN [A-Z0-9 ]*PRIV[A]TE KEY(?: BLOCK)?-----[\\s\\S]*?-----E[N]D [A-Z0-9 ]*PRIV[A]TE KEY(?: BLOCK)?-----"
+    },
+    {
+      "category": "URL_WITH_CREDS",
+      "name": "userinfo_any_scheme",
+      "regex": "(?<![\\w])[A-Za-z][A-Za-z0-9+.\\-]*://([^\\s/:@]+:[^\\s@/]+)@",
+      "group": 1
+    },
+    {
+      "category": "OAUTH_JWT",
+      "name": "google_ya29",
+      "regex": "(?<![\\w\\-])ya29\\.[A-Za-z0-9_\\-]{20,}"
+    },
+    {
+      "category": "OAUTH_JWT",
+      "name": "google_refresh",
+      "regex": "(?<![\\w])1//0[A-Za-z0-9_\\-]{20,}"
+    },
+    {
+      "category": "OAUTH_JWT",
+      "name": "jwt",
+      "regex": "(?<![\\w\\-])eyJ[A-Za-z0-9_\\-]{8,}\\.eyJ[A-Za-z0-9_\\-]{8,}\\.[A-Za-z0-9_\\-]{8,}"
+    },
+    {
+      "category": "OAUTH_JWT",
+      "name": "bearer",
+      "regex": "(?<![\\w])Bearer[ \\t]+[A-Za-z0-9\\-_.=+/]{16,}",
+      "flags": "I"
+    },
+    {
+      "category": "OAUTH_JWT",
+      "name": "basic_auth",
+      "regex": "(?<![\\w])Basic[ \\t]+[A-Za-z0-9+/]{16,}={0,2}",
+      "flags": "I"
+    },
+    {
+      "category": "GITHUB_TOKEN",
+      "name": "gh_classic",
+      "regex": "(?<![\\w])(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}"
+    },
+    {
+      "category": "GITHUB_TOKEN",
+      "name": "gh_fine_grained",
+      "regex": "(?<![\\w])github_pat_[A-Za-z0-9_]{22,}"
+    },
+    {
+      "category": "WEBHOOK",
+      "name": "slack_webhook",
+      "regex": "https://hooks\\.slack\\.com/services/[A-Za-z0-9/_\\-]+"
+    },
+    {
+      "category": "WEBHOOK",
+      "name": "discord_webhook",
+      "regex": "https://(?:canary\\.|ptb\\.)?discord(?:app)?\\.com/api/webhooks/\\d+/[A-Za-z0-9_\\-]+"
+    },
+    {
+      "category": "API_KEY",
+      "name": "openai_anthropic_sk",
+      "regex": "(?<![\\w\\-])sk-[A-Za-z0-9_\\-]{20,}"
+    },
+    {
+      "category": "API_KEY",
+      "name": "google_aiza",
+      "regex": "(?<![\\w\\-])AIza[0-9A-Za-z_\\-]{35}(?![\\w\\-])"
+    },
+    {
+      "category": "API_KEY",
+      "name": "upstage_up",
+      "regex": "(?<![\\w\\-])up_[A-Za-z0-9]{20,}"
+    },
+    {
+      "category": "API_KEY",
+      "name": "slack_xox",
+      "regex": "(?<![\\w\\-])(?:xox[abpors]|xapp)-[A-Za-z0-9\\-]{10,}"
+    },
+    {
+      "category": "API_KEY",
+      "name": "aws_access_key_id",
+      "regex": "(?<![\\w])(?:AKIA|ASIA|AGPA|AIDA|AROA|ANPA)[0-9A-Z]{16}(?![\\w])"
+    },
+    {
+      "category": "API_KEY",
+      "name": "stripe_secret",
+      "regex": "(?<![\\w\\-])(?:[sr]k_(?:live|test)_[A-Za-z0-9]{16,}|whsec_[A-Za-z0-9]{20,})"
+    },
+    {
+      "category": "API_KEY",
+      "name": "google_oauth_client_secret",
+      "regex": "(?<![\\w\\-])GOCSPX-[A-Za-z0-9_\\-]{20,}"
+    },
+    {
+      "category": "API_KEY",
+      "name": "sendgrid",
+      "regex": "(?<![\\w])SG\\.[A-Za-z0-9_\\-]{16,}\\.[A-Za-z0-9_\\-]{32,}"
+    },
+    {
+      "category": "API_KEY",
+      "name": "twilio_sid_or_key",
+      "regex": "(?<![\\w])(?:AC|SK)[0-9a-fA-F]{32}(?![\\w])"
+    },
+    {
+      "category": "API_KEY",
+      "name": "huggingface",
+      "regex": "(?<![\\w\\-])hf_[A-Za-z0-9]{30,}"
+    },
+    {
+      "category": "API_KEY",
+      "name": "npm_token",
+      "regex": "(?<![\\w\\-])npm_[A-Za-z0-9]{30,}"
+    },
+    {
+      "category": "API_KEY",
+      "name": "azure_account_key",
+      "regex": "AccountKey=[A-Za-z0-9+/]{40,}={0,2}",
+      "flags": "I"
+    },
+    {
+      "category": "API_KEY",
+      "name": "supabase_sbp",
+      "regex": "(?<![\\w\\-])sbp_[A-Za-z0-9]{30,}"
+    },
+    {
+      "category": "API_KEY",
+      "name": "firebase_server_key",
+      "regex": "(?<![\\w])AAAA[A-Za-z0-9_\\-]{7}:APA91b[A-Za-z0-9_\\-]{100,}"
+    },
+    {
+      "category": "API_KEY",
+      "name": "telegram_bot",
+      "regex": "(?<![\\w])\\d{8,10}:[A-Za-z0-9_\\-]{35}(?![\\w\\-])"
+    },
+    {
+      "category": "KV_SECRET",
+      "name": "header_auth_like",
+      "regex": "(?<![\\w\\-])(?:authorization|proxy-authorization|x-api-key|x-auth-token|x-access-token|private-token|api-key|apikey|x-goog-api-key|ocp-apim-subscription-key)[ \\t]*:[ \\t]*(\\S(?:[^\\n]*\\S)?)",
+      "flags": "I",
+      "group": 1
+    },
+    {
+      "category": "KV_SECRET",
+      "name": "header_cookie",
+      "regex": "(?<![\\w\\-])(?:cookie|set-cookie)[ \\t]*:[ \\t]*(\\S(?:[^\\n]*\\S)?)",
+      "flags": "I",
+      "group": 1
+    },
+    {
+      "category": "KV_SECRET",
+      "name": "json_quoted_value",
+      "regex": "\"[\\w.\\-]*(?:key|secret|token|pass(?:word|wd|phrase|code)?|auth|cred(?:ential)?)s?(?![a-z])[\\w.\\-]*\"[ \\t]*:[ \\t]*\"([^\"\\n]{4,})\"",
+      "flags": "I",
+      "group": 1
+    },
+    {
+      "category": "KV_SECRET",
+      "name": "kv_quoted_value",
+      "regex": "(?<![\\w.\\-])[\\w.\\-]*(?:key|secret|token|pass(?:word|wd|phrase|code)?|auth|cred(?:ential)?)s?(?![a-z])[\\w.\\-]*[ \\t]*[:=][ \\t]*([\"'])([^\"'\\n]{4,})\\1",
+      "flags": "I",
+      "group": 2
+    },
+    {
+      "category": "KV_SECRET",
+      "name": "kv_bare_value",
+      "regex": "(?<![\\w.\\-])[\\w.\\-]*(?:key|secret|token|pass(?:word|wd|phrase|code)?|auth|cred(?:ential)?)s?(?![a-z])[\\w.\\-]*[ \\t]*[:=][ \\t]*(?![\"'\\[{]|(?:true|false|null|none|yes|no)(?![\\w.\\-])|-?\\d+(?:\\.\\d+)?(?![^\\s\"',;]))([^\\s\"',;]{4,})",
+      "flags": "I",
+      "group": 1
+    },
+    {
+      "category": "KV_SECRET",
+      "name": "env_assignment_line",
+      "regex": "^[A-Z][A-Z0-9_]{2,}[ \\t]*=[ \\t]*(\\S{8,})[ \\t]*$",
+      "flags": "M",
+      "group": 1
+    },
+    {
+      "category": "EMAIL",
+      "name": "email_standard",
+      "regex": "(?<![\\w.+\\-])[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}"
+    },
+    {
+      "category": "EMAIL",
+      "name": "email_obfuscated",
+      "regex": "[A-Za-z0-9._\\-]+[ \\t]*[\\[(][ \\t]*at[ \\t]*[\\])][ \\t]*[A-Za-z0-9\\-]+(?:(?:[ \\t]*[\\[(][ \\t]*dot[ \\t]*[\\])][ \\t]*|\\.)[A-Za-z0-9\\-]+)+",
+      "flags": "I"
+    },
+    {
+      "category": "PHONE",
+      "name": "phone_egypt",
+      "regex": "(?<![\\w])(?:(?:\\+|00)20[ \\t\\-]?|0)1[0125](?:[ \\t\\-]?\\d){8}(?!\\d)",
+      "check": "phone_context"
+    },
+    {
+      "category": "PHONE",
+      "name": "phone_international",
+      "regex": "(?<![\\w+])\\+(?:[ \\t\\-]?\\d){10,15}(?!\\d)",
+      "check": "phone_context"
+    },
+    {
+      "category": "PII",
+      "name": "egypt_national_id",
+      "regex": "(?<!\\d)[23]\\d{13}(?!\\d)"
+    },
+    {
+      "category": "PII",
+      "name": "egypt_iban",
+      "regex": "(?<![\\w])EG\\d{27}(?![\\w])"
+    },
+    {
+      "category": "PII",
+      "name": "card_luhn",
+      "regex": "(?<![\\d\\-])(?:\\d[ \\-]?){12,18}\\d(?![\\d\\-])",
+      "check": "luhn"
+    },
+    {
+      "category": "PATH",
+      "name": "home_windows_drive",
+      "regex": "(?<![\\w])[A-Za-z]:[\\\\/]+Users[\\\\/]+[^\\\\/\\s\"'<>|:*?]+",
+      "flags": "I",
+      "replacement": "~"
+    },
+    {
+      "category": "PATH",
+      "name": "home_wsl_or_msys",
+      "regex": "(?<![\\w/])/(?:mnt/)?[A-Za-z]/Users/[^/\\s\"'<>|]+",
+      "flags": "I",
+      "replacement": "~"
+    },
+    {
+      "category": "PATH",
+      "name": "home_linux",
+      "regex": "(?<![\\w/])/home/[^/\\s\"'<>|]+",
+      "replacement": "~"
+    },
+    {
+      "category": "PATH",
+      "name": "home_macos",
+      "regex": "(?<![\\w/])/Users/[^/\\s\"'<>|]+",
+      "replacement": "~"
+    },
+    {
+      "category": "PATH",
+      "name": "home_env_var",
+      "regex": "(?:%USERPROFILE%|%HOMEDRIVE%%HOMEPATH%|%HOMEPATH%|\\$\\{HOME\\}|\\$HOME(?![\\w]))",
+      "flags": "I",
+      "replacement": "~"
+    },
+    {
+      "category": "PATH",
+      "name": "denied_path_token",
+      "regex": "(?<![\\w:/\\\\])(?:~|[A-Za-z]:)?(?:[\\\\/][^\\s\\\\/\"'<>|:*?`()\\[\\]]+)+",
+      "check": "denied_path"
+    }
+  ]
+}

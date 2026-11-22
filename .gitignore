@@ -1,0 +1,71 @@
+# ===== Local / coordination-only files (never published) =====
+_local/
+BRIEF_FOR_PLANNER.md
+OWNER_DECISIONS_R2.md
+COMPASS_NOTE_S0.md
+
+# ===== DENY_COPY: binary databases / protobuf (read for export only, never committed) =====
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*-wal
+*-shm
+*.pb
+
+# ===== DENY_READ: secrets / accounts / sessions / credentials (PLAN §3.1) =====
+keys.md
+keys.txt
+keys*
+*.env
+.env*
+oauth_creds.json
+google_accounts.json
+upstage_session.json
+*accounts*.json
+*.session
+*.har
+ACCOUNT_FUNDING_REGISTER.md
+service.json
+unlimited-identity.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.ppk
+id_rsa*
+.netrc
+.npmrc
+.pypirc
+.git-credentials
+*.gpg
+*.asc
+kubeconfig*
+*.ovpn
+wallet*
+seed*
+mnemonic*
+*secret*
+*cred*
+*password*
+credentials*.json
+token*.json
+*.cookies*
+*.log
+
+# ===== DENY_READ: sensitive directories =====
+secrets/
+.ssh/
+.aws/
+.gnupg/
+
+# ===== Python =====
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ===== Explicit re-includes (tooling whose NAME collides with a deny pattern) =====
+!tools/verify_no_secrets.py

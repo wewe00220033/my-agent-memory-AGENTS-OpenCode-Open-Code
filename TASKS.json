@@ -1,0 +1,80 @@
+{
+  "project": "my-agent-memory-AGENTS-OpenCode-Open-Code",
+  "plan_version": 3,
+  "plan_approved": true,
+  "status": "S0_PENDING_CRITIC_GATE",
+  "git_policy": "stage-by-stage: after [STAGE_APPROVED <id>] Antigravity commits (noreply) + pushes; planner/executor never commit/push",
+  "stages": [
+    {
+      "id": "S0",
+      "title": "الاستكشاف والهيكل وبوابة الأمان",
+      "status": "pending",
+      "gate": "critic LENS: scope-guard (على الخطة) → run_tests.cmd all → [STAGE_APPROVED S0] → البوصلة push",
+      "tasks": [
+        {"id": "T0", "red": false, "status": "done", "verified": "2026-11-22 16:20 — hash match للملفات الرئيسية الثلاثة؛ -wal لـ conversation_summaries تغيّر بفعل Antigravity الحي (مقبول — السكربت ينسخ بايتات فقط)؛ grep أمني نظيف؛ .gitignore = _local/ فقط", "title": "discover_schema.py (قراءة فقط، بلا تعقيم/نص خام) + _local/T0_SCHEMA_REPORT.md + .gitignore أولي (_local/)", "acceptance": "(أ) جداول/أعمدة/أنواع/أعداد/إحصاءات أطوال للقواعد الثلاث + بنية LEDGER/FORENSIC ونسبة التكرار؛ (ب) SHA-256 المصدر قبل/بعد متطابق؛ (ج) فتح نسخة temp فقط mode=ro&immutable=1؛ (د) صفر نص خام؛ (هـ) لا كتابة خارج _local/ و tools/discover_schema.py و .gitignore"},
+        {"id": "T1", "red": false, "status": "done", "verified": "2026-11-22 16:45 — planner ran run_tests.cmd unit/all = exit 0 (10 tests); .gitignore reviewed (71 lines, re-include !tools/verify_no_secrets.py)", "title": ".gitignore الكامل + .gitattributes + هيكل .gitkeep + placeholders INDEX.md + tools/vaultlib.py", "acceptance": "run_tests.cmd unit و all = exit 0"},
+        {"id": "T2.1", "red": true, "status": "pending", "title": "ضبط redact.py بعد dry-run: (أ) PRIVATE_KEY بلا END أو مذكور كنص/نمط → تعمية سطر الهيدر + أي أسطر base64 تالية بدل رفع unresolved (unresolved فقط إن بقي base64 متتابع بعد الهيدر)؛ (ب) context_hint في entropy_hits يجرّد أي رقم ≥ 6 خانات وأي مكوّن مسار بعد ~ (منع تسرب bot ids/أسماء مجلدات للـ manifest المنشور)؛ (ج) إعادة dry-run على نفس العينة ومقارنة unresolved قبل/بعد", "acceptance": "unit = 100% + حالات اختبار جديدة للحالتين؛ unresolved في dry-run ≈ 0 أو مبرَّر؛ لا رقم ≥ 6 خانات في context_hint"},
+        {"id": "T2", "red": true, "status": "done", "verified": "2026-11-22 18:05 — planner ran unit (42+12) و all (64/64) = OK؛ grep أمني على tools/tests/_local = 0؛ dry-run موجود (846 عنصر، hash match، temp محذوف)؛ ملاحظتا ضبط → T2.1", "title": "TDD: test_redact (>=30) + test_denylist + patterns.json + denylist.json + redact.py (تمريرتان + unresolved_private_key) + dry-run الأنماط على عينة → _local/T2_PATTERN_DRYRUN.md", "acceptance": "unit = 100%؛ stdlib فقط؛ تقرير dry-run في _local/ بعدّادات فقط"},
+        {"id": "T3", "red": false, "status": "done", "verified": "2026-11-22 18:40 — planner ran run_tests.cmd all = 82/82 OK (test_shard 18)؛ imports stdlib فقط", "title": "shard.py + test_shard.py", "acceptance": "unit = 100%"},
+        {"id": "T4", "red": false, "status": "done", "verified": "2026-11-22 19:35 — planner ran run_tests.cmd all = 107 OK (1 skipped: AGENTS.md لم يُكتب بعد S1/T7) + VERIFY: CLEAN (files=29, range d669dbd..HEAD, commits=1 noreply)؛ SELF_EXEMPT/CODE_CATEGORIES/NOREPLY_SUFFIX/HISTORY_SECRET/COMMIT_EMAIL موجودة؛ imports stdlib فقط؛ 5 FP في ملفات المخطط أُصلحت بإعادة الصياغة لا بالاستثناء", "title": "verify_no_secrets.py + test_repo_clean + test_sizes + test_index_links + test_verify_negative", "acceptance": "all ناجح والسلبي يُفشل الفاحص"}
+      ]
+    },
+    {
+      "id": "S1",
+      "title": "القواعد والمهارات + AGENTS.md v1",
+      "status": "pending",
+      "gate": "run_tests.cmd all → [STAGE_APPROVED S1] → البوصلة push",
+      "tasks": [
+        {"id": "T5", "red": false, "status": "pending", "title": "copy_sources.py (تعقيم + طبقتا denylist + dedupe + manifest + dry-run)", "acceptance": "اختبار dry-run ناجح"},
+        {"id": "T6", "red": true, "status": "pending", "title": "نسخ GEMINI.md/rules/workflows/skills/commands + skills/INDEX.md", "acceptance": "23/3/2/2؛ all ناجح"},
+        {"id": "T7", "red": true, "status": "pending", "title": "AGENTS.md v1 (11 قسم، خلاصة القواعد الفعلية، ثنائي) + README.md + profile/OWNER_PROFILE.md + هيكل SNAPSHOT.md", "acceptance": "test_index_links؛ مراجعة كثافة"}
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "الذاكرة والـ Handoffs",
+      "status": "pending",
+      "gate": "run_tests.cmd all → [STAGE_APPROVED S2] → البوصلة push",
+      "tasks": [
+        {"id": "T8", "red": true, "status": "pending", "title": "gateway-service → memory/gateway-service (بدون CONVERSATIONS_*/LEDGER)", "acceptance": "manifest يذكر المرفوض بالاسم؛ 0 DENY_READ فُتح"},
+        {"id": "T9", "red": true, "status": "pending", "title": "Bolla-Agentic-OS → memory/bolla-agentic-os", "acceptance": "نفس T8"},
+        {"id": "T10", "red": true, "status": "pending", "title": "D:\\SMS + scratch → memory/sms-root, memory/scratch", "acceptance": "نفس T8"},
+        {"id": "T11", "red": true, "status": "pending", "title": "profile/DECISIONS + MISTAKES + ANCHORS + memory/INDEX.md", "acceptance": "all ناجح"}
+      ]
+    },
+    {
+      "id": "S3",
+      "title": "تفريغ المحادثات (كله — Q7)",
+      "status": "pending",
+      "gate": "run_tests.cmd all + مراجعة entropy_hits → [STAGE_APPROVED S3] → البوصلة push",
+      "tasks": [
+        {"id": "T12", "red": true, "status": "pending", "title": "snapshot_db.py → لقطة متزامنة + SNAPSHOT.md", "acceptance": "تاريخ + hash + counts"},
+        {"id": "T13", "red": true, "status": "pending", "title": "export_summaries.py", "acceptance": "exported + skipped == count(snapshot)"},
+        {"id": "T14", "red": true, "status": "pending", "title": "export_antigravity_fts.py", "acceptance": "exported + skipped == conv_count؛ sum(chunks) == chunk_count"},
+        {"id": "T15", "red": true, "status": "pending", "title": "export_opencode.py (بلا tool outputs/reasoning — Q11/Q12)", "acceptance": "exported + skipped == session_count؛ 0 tool parts"},
+        {"id": "T16", "red": true, "status": "pending", "title": "export_ledger.py (LEDGER فقط — FORENSIC تكرار 100% حسب T0 — + أجزاء JSON-صالحة ≤ 2 MB + parts.json + AUDIT/SUMMARY)", "acceptance": "453 عنصر؛ parts.json يعيد التجميع؛ لا جزء > 2 MB؛ INDEX يذكر أن FORENSIC مكرر"},
+        {"id": "T17", "red": false, "status": "pending", "title": "conversations/INDEX.md + index/<source>-<YYYY>.md + 20 مسار عشوائي + entropy_hits للمراجعة", "acceptance": "all ناجح؛ المراجعة موثقة"}
+      ]
+    },
+    {
+      "id": "S4",
+      "title": "الـ Brain (كله بعد dedupe — Q2)",
+      "status": "pending",
+      "gate": "run_tests.cmd all → [STAGE_APPROVED S4] → البوصلة push",
+      "tasks": [
+        {"id": "T18", "red": true, "status": "pending", "title": "brain/antigravity — *.md فقط (172 حسب T0؛ المجلد 38,127 ملف/1.78 GB) — dedupe + dry-run + تقرير أعلى 20 ملف تعقيماً قبل الكتابة", "acceptance": "manifest يسجل المكررات وعدّادات التعقيم؛ 0 ملف غير .md"},
+        {"id": "T19", "red": true, "status": "pending", "title": "brain/antigravity-ide — *.md فقط (1,528 حسب T0؛ المجلد 62,050 ملف/4.44 GB به 19,375 اسم ممنوع) — dedupe + dry-run + تقرير قبل الكتابة + brain/INDEX.md", "acceptance": "all ناجح؛ manifest بالمكررات؛ 0 ملف DENY_READ فُتح"}
+      ]
+    },
+    {
+      "id": "S5",
+      "title": "الفهرسة النهائية والتسليم",
+      "status": "pending",
+      "gate": "critic LENS: fish → [FINAL_APPROVED] → البوصلة push نهائي",
+      "tasks": [
+        {"id": "T20", "red": false, "status": "pending", "title": "build_index.py → INDEX.json + AUTO-INDEX + كل INDEX.md + تكثيف AGENTS.md النهائي", "acceptance": "كل مسار موجود؛ صفر حشو"},
+        {"id": "T21", "red": true, "status": "pending", "title": "الفحص الشامل (all + حذف temp + لا .db + حجم + git status) بدون commit/push", "acceptance": "0 أسرار؛ تقرير حجم"}
+      ]
+    }
+  ]
+}
