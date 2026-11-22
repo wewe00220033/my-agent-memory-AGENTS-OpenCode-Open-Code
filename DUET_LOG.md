@@ -94,3 +94,46 @@
 - **تحقق مستقل للمخطط:** `.\run_tests.cmd all` = **107 اختبار OK** (1 skipped مبرَّر: `AGENTS.md` لم يُكتب بعد — S1/T7) + `VERIFY: CLEAN (files=29)` على نطاق `d669dbd..HEAD` (commits=1 noreply) + تحذير `user.email` حسب المواصفة؛ imports stdlib فقط؛ `_local/` غير ظاهر في git.
 - `TASKS.json`: T0–T4 = done. `duet_resume.json`: `stage_status.S0 = APPROVED`، `next_batch = [COMPASS_PUSH_S0]`.
 - **[STAGE_APPROVED S0]** — توقف. البوصلة تفحص S0 وتعمل commit بهوية noreply + push. التالي: S1 (T5–T8)، وT2.1 مؤجلة لبداية S3.
+
+## [2026-11-22 20:00] mode=internal stage=S1 action=ASSIGN status=STARTED
+- البوصلة: S0 مرفوعة — commit `7428f5c` على `main` (47 ملفاً، VERIFY: CLEAN، 107 اختبارات بلا تحذيرات بعد ضبط هوية noreply محلياً).
+- نطاق هذه الجولة: **T5 ثم T6 فقط** (T6 🔴 دفعة مفردة)، ثم توقف قبل T7 (AGENTS.md). ممنوع question وممنوع commit/push.
+- `duet_resume.json`: `current_stage = S1`، `current_batch = [T5]`، `next_batch = [T6]`.
+- تكليف `executor` (جلسة `ses_dfbcdc2a7ffebfGNNzgGlNnp1E`) بـ T5: `tools/copy_sources.py` + اختبار dry-run.
+
+## [2026-11-22 20:22] mode=internal stage=S1 action=ACCEPT status=T5_DONE
+- المنفذ سلّم `tools/copy_sources.py` + `tests/test_copy_sources.py` (9 اختبارات). أبلغ عن فشل واحد في `all` مصدره `duet_resume.json:13`.
+- سبب الفشل: نمط `kv_bare_value` التقط كلمة البوصلة بالإنجليزية متبوعة بنقطتين (المقطع الأخير منها يطابق مفتاح كلمة مرور) — أصلحت الصياغة في ملفي أنا. قاعدة: لا تكتب الاسم الإنجليزي للبوصلة قبل `:` في ملفات التنسيق.
+- تحقق مستقل: `run_tests.cmd all` → **116 OK (skipped=1 AGENTS.md متوقع) + VERIFY: CLEAN (files=31)**. قرأت `copy_sources.py` بنفسي: الخط متطابق مع PLAN §3/§4.
+- ملاحظة مؤجلة إلى T6: السطران 198/201 يسجّلان مسارات DENY_READ/DENY_COPY خاماً بدون `_safe()`.
+- `duet_resume.json`: `completed_tasks += T5`، `current_batch = [T6]`، `next_batch = STOP before T7`.
+
+## [2026-11-22 20:32] mode=internal stage=S1 action=ACCEPT status=T6_DONE_PAUSED_BEFORE_T7
+- المنفذ: إصلاح `_safe()` في `copy_sources.py` + `copy_tree(manifest_dir)` + `copy_file()` + `tools/export_rules.py` (المصادر عبر `Path.home()`، manifests في `_local/manifests/T6/`).
+- dry-run أولاً (errors=0، sensitive=0، rejected_by_name=0) ثم كتابة فعلية: **23 SKILL.md** (+37 references) / **4 rules** (3 + GEMINI.md) / **2 workflows** / **2 commands** = 68 ملفاً + `skills/INDEX.md` (23 صفاً). Idempotent مؤكَّد بالهاشات.
+- الفشل الوحيد الذي أبلغ عنه كان من ملفيّ أنا (`DUET_LOG.md:106`، `duet_resume.json:13` — نفس فخ KV_SECRET) → أصلحت الصياغة.
+- تحقق مستقل: `run_tests.cmd all` → **116 OK (skipped=1 AGENTS.md) + VERIFY: CLEAN (files=100)**؛ glob = 23 `SKILL.md`؛ قرأت `skills/INDEX.md` وعلامات التعقيم في `neon-functions` و`rules/`.
+- **مكسب أمني:** `rules/GEMINI.md:51` كان يحوي توكن بوت حقيقياً → `[REDACTED:API_KEY]`. توصية للبوصلة: تدوير التوكن الأصلي.
+- ملاحظات لـ T7/T2.1: وصف `00-evidence-inspector` في الفهرس التقط سطر زخرفة؛ إيجابيات كاذبة KV_SECRET في اختصارات الكيبورد ووثائق Neon (مقبولة — Q6).
+- **توقف متفق عليه قبل T7.** `duet_resume.json`: `completed_tasks += T6`، `current_batch = []`، `next_batch = [T7]`.
+
+## [2026-11-22 20:40] mode=internal stage=S1 action=ASSIGN status=T7_STARTED
+- البوصلة تحققت مستقلاً من T5/T6 (116 OK + VERIFY: CLEAN files=100) وطلبت T7 فقط لإغلاق S1، بشرط 0 skipped وبلا commit/push.
+- **مراجعة `entropy_hits` (T6 — 13 إصابة في `_local/manifests/T6/skills.manifest.json`):** كلها في وثائق Neon العامة (`neon-functions`, `neon-postgres`, `neon-realtime`)، السياق anchors ماركداون (`#`, `../SKILL.md#`) ومعرّفات كود (`LiveQueryState`, `subscription`)، أطوال 32–59 وإنتروبيا 4.0–4.12 (حد العتبة بالكاد) → **لا سر حقيقي**. ملاحظة T2.1: رفع العتبة لـ anchors/slugs الماركداون (استثناء ما يسبقه `#` أو `](`) يقلل الضجيج.
+- ملاحظة T2.1 إضافية: إيجابيات كاذبة KV_SECRET في `rules/arabic_keyboard_shortcuts.md` (حقل مفتاح الاختصار في keybindings بقيمة مثل ctrl+حرف) وأمثلة كود Neon (`--env KEY=`, `?token=`) — مقبولة الآن (Q6)، يمكن استثناء مفاتيح VS Code keybindings وقيم placeholder بزوايا `<...>`.
+- تكليف `executor` (نفس الجلسة) بـ T7 🔴: إصلاح وصف `00-evidence-inspector` + تحسين استخراج الوصف في `export_rules.py`، `AGENTS.md` v1 (الأقسام 1–11 ثنائية اللغة)، `README.md` (بدون LICENSE — Q8)، `profile/OWNER_PROFILE.md`، هيكل `SNAPSHOT.md`؛ كل نص يمر عبر `redact_text` قبل الحفظ.
+
+## [2026-11-22 20:55] mode=internal stage=S1 action=VERIFY status=T7_PARTIAL_REASSIGNED
+- الجولة الأولى للمنفذ: كتب مسودة `_local/T7_AGENTS_DRAFT.md` (كثافة ممتازة، الأقسام 1–11) ثم توقف عند بلوكر في ملفي `DUET_LOG.md:123` (إيجابية كاذبة `json_quoted_value` — مثال keybindings داخل الملاحظة). أصلحت الصياغة.
+- تحقق مستقل: `run_tests.cmd all` = 116 OK + VERIFY: CLEAN (files=100) لكن `skipped=1` — فحص القرص: لا `AGENTS.md` في الجذر، `README.md` placeholder، `profile/` فارغ، لا `SNAPSHOT.md`.
+- إعادة تكليف المنفذ (نفس الجلسة) بإكمال الناقص فقط: نقل المسودة إلى `AGENTS.md`، `README.md`، `profile/OWNER_PROFILE.md`، `SNAPSHOT.md`، تأكيد إصلاح `skills/INDEX.md`، قبول 0 skipped.
+- درس للمخطط: ملفات التنسيق تُفحص بالفاحص نفسه — لا أكتب أمثلة أنماط (مفتاح/قيمة مقتبسة، اسم البوصلة بالإنجليزية + نقطتين) داخل السجل.
+
+## [2026-11-22 21:10] mode=internal stage=S1 action=ACCEPT status=T7_DONE_STAGE_APPROVED
+- الجولة الثانية للمنفذ أكملت الناقص: `AGENTS.md` (27,023 بايت، 11 قسماً ثنائياً، 33 رابطاً، جدول 23 مهارة داخل AUTO-INDEX، 3 روابط لملفات T11 حُوِّلت لنص backticks)، `README.md` (9,212 بايت، EN+AR، سطر Q8: خزنة شخصية بلا LICENSE)، `profile/OWNER_PROFILE.md` (5,897 بايت، صفر PII)، `SNAPSHOT.md` (هيكل فارغ القيم). كل ملف مرّ عبر `redact_text` + `residual_matches` فارغ.
+- وصف `00-evidence-inspector` مصحَّح ("الدور: فاحص بأدلة — Evidence-Based QA") عبر `_is_prose()` في `export_rules.py`.
+- تحقق مستقل (المخطط): `run_tests.cmd all` → **116 OK، 0 skipped، VERIFY: CLEAN (files=103)**؛ قرأت عناوين الأقسام 1–11 وملخصات EN وسطر الترخيص بنفسي.
+- تحقق مستقل (البوصلة): نفس النتيجة (116 OK، 0 skipped، CLEAN files=103) بعد فحص الملفات الأربعة.
+- ملاحظة entropy واحدة في `README.md` = اسم الريبو نفسه (41 حرفاً، 4.01) — إيجابية كاذبة، بلا إجراء.
+- `TASKS.json`: T7 done، S1 done. `duet_resume.json`: `current_stage = S2`، `completed_tasks` حتى T7، `next_batch = [T8, T9, T10, T11]` + ملاحظات بدء S2 (كلها 🔴 مفردة بـ dry-run).
+- **[STAGE_APPROVED S1]** — توقف. البوصلة تراجع وتعمل commit بهوية noreply + push. التالي عند `تابع`: S2 بدءاً بـ T8 🔴.

@@ -22,12 +22,13 @@
     {
       "id": "S1",
       "title": "القواعد والمهارات + AGENTS.md v1",
-      "status": "pending",
+      "status": "done",
+      "approved": "2026-11-22 21:10 — [STAGE_APPROVED S1] بعد run_tests.cmd all = 116 OK (0 skipped) + VERIFY: CLEAN (files=103) — تحقق مستقل من المخطط والبوصلة؛ بانتظار commit+push من البوصلة",
       "gate": "run_tests.cmd all → [STAGE_APPROVED S1] → البوصلة push",
       "tasks": [
-        {"id": "T5", "red": false, "status": "pending", "title": "copy_sources.py (تعقيم + طبقتا denylist + dedupe + manifest + dry-run)", "acceptance": "اختبار dry-run ناجح"},
-        {"id": "T6", "red": true, "status": "pending", "title": "نسخ GEMINI.md/rules/workflows/skills/commands + skills/INDEX.md", "acceptance": "23/3/2/2؛ all ناجح"},
-        {"id": "T7", "red": true, "status": "pending", "title": "AGENTS.md v1 (11 قسم، خلاصة القواعد الفعلية، ثنائي) + README.md + profile/OWNER_PROFILE.md + هيكل SNAPSHOT.md", "acceptance": "test_index_links؛ مراجعة كثافة"}
+        {"id": "T5", "red": false, "status": "done", "verified": "2026-11-22 20:20 — run_tests.cmd all = 116 OK + VERIFY: CLEAN (files=31)؛ 9 اختبارات test_copy_sources؛ ملاحظة مؤجلة لـ T6: تسجيل مسارات DENY_READ/COPY خاماً بدون _safe()", "title": "copy_sources.py (تعقيم + طبقتا denylist + dedupe + manifest + dry-run)", "acceptance": "اختبار dry-run ناجح"},
+        {"id": "T6", "red": true, "status": "done", "verified": "2026-11-22 20:30 — dry-run ثم كتابة؛ 23 SKILL.md / 4 rules (3+GEMINI) / 2 workflows / 2 commands = 68 ملفاً + skills/INDEX.md؛ run_tests.cmd all = 116 OK + VERIFY: CLEAN (files=100)؛ توكن بوت حقيقي في GEMINI.md عُمِّي [REDACTED:API_KEY]", "title": "نسخ GEMINI.md/rules/workflows/skills/commands + skills/INDEX.md", "acceptance": "23/3/2/2؛ all ناجح"},
+        {"id": "T7", "red": true, "status": "done", "verified": "2026-11-22 21:05 — planner ran run_tests.cmd all = 116 OK (0 skipped) + VERIFY: CLEAN (files=103)؛ AGENTS.md 27 KB / 11 قسماً ثنائياً / 33 رابطاً / جدول 23 مهارة داخل AUTO-INDEX؛ README.md بسطر Q8 (بلا LICENSE)؛ profile/OWNER_PROFILE.md؛ هيكل SNAPSHOT.md فارغ القيم؛ وصف 00-evidence-inspector مصحَّح (_is_prose في export_rules.py)", "title": "AGENTS.md v1 (11 قسم، خلاصة القواعد الفعلية، ثنائي) + README.md + profile/OWNER_PROFILE.md + هيكل SNAPSHOT.md", "acceptance": "test_index_links؛ مراجعة كثافة"}
       ]
     },
     {
