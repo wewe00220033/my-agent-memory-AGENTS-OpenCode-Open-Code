@@ -1,0 +1,35 @@
+{
+  "source": "ledger",
+  "ext": ".json",
+  "max_bytes": 2097152,
+  "count": 5,
+  "parts": [
+    {
+      "file": "ledger.part001.json",
+      "bytes": 2071860,
+      "sha256": "5da87f68ea296a9f66aec18fb791d430b76dcc83b354bc62e801805e8290418a"
+    },
+    {
+      "file": "ledger.part002.json",
+      "bytes": 2093846,
+      "sha256": "14d16a25f0d01cf8234a69f754f7c9ba993634fdda01839423074588f9eebc8a"
+    },
+    {
+      "file": "ledger.part003.json",
+      "bytes": 2049715,
+      "sha256": "e55a67a206f54ac9d778c690fb75923872d83c4a3dfa3b05eda3abda1a1715a3"
+    },
+    {
+      "file": "ledger.part004.json",
+      "bytes": 2094528,
+      "sha256": "876995fef0354b79c8671e83bd65077877f7b844e22f24db48e4ebc9adc648c9"
+    },
+    {
+      "file": "ledger.part005.json",
+      "bytes": 1826298,
+      "sha256": "31969a7d60053fd13bc54d3342b85f75d2307d4d5f49fa3c84ef5d973114e75e"
+    }
+  ],
+  "total_bytes": 10136247,
+  "oversize_warnings": []
+}

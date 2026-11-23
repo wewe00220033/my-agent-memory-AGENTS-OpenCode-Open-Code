@@ -42,7 +42,7 @@ PATTERNS_FILE = TOOLS_DIR / "patterns.json"
 DENYLIST_FILE = TOOLS_DIR / "denylist.json"
 
 CATEGORY_ORDER: Tuple[str, ...] = (
-    "PRIVATE_KEY", "URL_WITH_CREDS", "OAUTH_JWT", "GITHUB_TOKEN", "WEBHOOK", "API_KEY",
+    "PRIVATE_KEY", "URL_WITH_CREDS", "URL_TOKEN", "OAUTH_JWT", "GITHUB_TOKEN", "WEBHOOK", "API_KEY",
     "KV_SECRET", "EMAIL", "PHONE", "PII", "PATH",
 )
 MARKER_PREFIX = "[REDACTED:"
@@ -60,13 +60,32 @@ _PHONE_CTX = re.compile(
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?")
 _HEX40 = re.compile(r"[0-9a-fA-F]{40}")
 _HEX64 = re.compile(r"[0-9a-fA-F]{64}")
+_HEX_CHAR = re.compile(r"[0-9a-fA-F]")
 _UUID = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 _TOKEN = re.compile(r"[A-Za-z0-9+=_\-]{%d,}" % ENTROPY_MIN_LEN)
 _B64_STD = re.compile(r"(?<![A-Za-z0-9+/=])[A-Za-z0-9+/]{%d,}={0,2}(?![A-Za-z0-9+/=])" % ENCODED_MIN_LEN)
 _B64_URL = re.compile(r"(?<![A-Za-z0-9_\-=])[A-Za-z0-9_\-]{%d,}={0,2}(?![A-Za-z0-9_\-=])" % ENCODED_MIN_LEN)
-_PK_RESIDUE = re.compile(r"-----B[E]GIN [A-Z0-9 ]*PRIV[A]TE KEY")
+# PEM header WITHOUT a matching END (complete blocks are removed earlier by ``pem_block``).
+_PK_RESIDUE = re.compile(r"-----B[E]GIN [A-Z0-9 ]*PRIV[A]TE KEY(?: BLOCK)?(?:-----)?")
+_PK_BODY_LINE = re.compile(r"[ \t]*[A-Za-z0-9+/]{4,}={0,2}[ \t]*")
+_PK_BODY_STRONG = 40  # one base64 line this long right below the header == a real key body
+_PK_BODY_LINES = 2    # ... or this many consecutive base64 lines (a truncated key dump)
 _HINT_RE = re.compile(r"([^\s:=\[\]\"',(){}<>]+)[\s:=\[\]\"',(){}<>]*$")
+_HINT_NUM = re.compile(r"\d{6,}")
 _DIGITS = re.compile(r"\D")
+# card_luhn guard: a bare digit run right after an identifier word is an id, not a card.
+_LUHN_ID_CTX = re.compile(
+    r"(?i)(?:(?:\b|_)(?:id|ref|order|invoice|chat|msg|message|uid|hash|commit|txn|tracking|serial|imei"
+    r"|isbn|barcode|sku|bot|sender|group|channel|user|file|job|run|task|session)[\s:=#_\-\"'`]*|#\s*)$"
+)
+# KV_SECRET guard: placeholders / variable references / keyboard chords are not secrets.
+_KV_PLACEHOLDER = re.compile(
+    r"^(?:<[^<>]{1,80}>|\$\{[A-Za-z_]\w*\}|\$[A-Za-z_]\w*|\{\{[^{}]{1,80}\}\}|%[A-Za-z_]\w*%)$"
+)
+_KEY_CHORD = re.compile(r"(?i)^(?:ctrl|control|shift|alt|cmd|meta|win|option|super)(?:\+[^\s+]+)+$")
+# HIGH_ENTROPY guards: public build identifiers (Next.js ``next-action`` etc.) and markdown anchors.
+_BUILD_ID_CTX = re.compile(r"(?i)(?:next-action|x-nextjs|__next|build-?id|chunk|webpack|integrity)")
+_HEXISH = re.compile(r"[0-9a-fA-F]{32,}")
 
 
 class RedactionIncomplete(RuntimeError):
@@ -237,10 +256,25 @@ def _check_phone(text: str, m: "re.Match[str]", value: str) -> bool:
     return not _in_iso_date(text, m.start(), m.end())
 
 
+def _in_hex_digest(text: str, start: int, end: int) -> bool:
+    """True when digits sit inside a >=24-char hex token containing hex letters (SHA/MD5/ObjectId)."""
+    lo, hi = start, end
+    while lo > 0 and _HEX_CHAR.match(text[lo - 1]):
+        lo -= 1
+    while hi < len(text) and _HEX_CHAR.match(text[hi]):
+        hi += 1
+    tok = text[lo:hi]
+    return len(tok) >= 24 and any("a" <= c.lower() <= "f" for c in tok)
+
+
 def _check_luhn(text: str, m: "re.Match[str]", value: str) -> bool:
+    if _in_hex_digest(text, m.start(), m.end()):
+        return False
     d = _only_digits(value)
     if _epoch_ms_like(d) or _numeric_context_excluded(text, m.start()):
         return False
+    if _LUHN_ID_CTX.search(text[max(0, m.start() - 24):m.start()]):
+        return False  # "id 1234…", "order #…", "chat_id=…": an identifier that passes Luhn by chance
     return luhn_ok(d)
 
 
@@ -248,15 +282,22 @@ def _check_denied_path(text: str, m: "re.Match[str]", value: str) -> bool:
     return is_denied_path(value, "READ")
 
 
+def _check_kv_value(text: str, m: "re.Match[str]", value: str) -> bool:
+    """False for placeholders (<token>, ${VAR}, {{x}}, %VAR%) and keyboard chords (ctrl+shift+p)."""
+    v = value.strip()
+    return not (_KV_PLACEHOLDER.match(v) or _KEY_CHORD.match(v))
+
+
 CHECKS: Dict[str, Callable[[str, "re.Match[str]", str], bool]] = {
     "phone_context": _check_phone,
     "luhn": _check_luhn,
     "denied_path": _check_denied_path,
+    "kv_value": _check_kv_value,
 }
 
 
 def _context_hint(text: str, start: int) -> str:
-    """The single word preceding *start* (never a value: long / opaque words are masked)."""
+    """The single word preceding *start* (never a value: paths, long numbers, long / opaque words are masked)."""
     prefix = text[max(0, start - 40):start]
     if MARKER_PREFIX in prefix[-30:] and prefix.rstrip().endswith("]"):
         return "<redacted>"
@@ -264,6 +305,10 @@ def _context_hint(text: str, start: int) -> str:
     if not m:
         return ""
     w = m.group(1)
+    if "~" in w or "/" in w or "\\" in w:
+        return "<path>"  # never leak a path component (folder / bot / account names)
+    if _HINT_NUM.search(w):
+        return "<num>"  # never leak numeric ids (bot ids, chat ids, phone fragments)
     if len(w) > 24:
         return "<long>"
     if len(w) >= 12 and shannon_entropy(w) >= 3.6:
@@ -359,12 +404,71 @@ def _encoded_pass(text: str, patterns: Sequence[Pattern], counts: Counter, patte
     return text
 
 
+def _pk_residue_pass(text: str, counts: Counter, pattern_counts: Counter) -> Tuple[str, bool]:
+    """Redact every PEM header that has no END (``pem_block`` already removed complete blocks).
+
+    The header (and, when it ends its line, every base64-looking line directly below it) becomes
+    ``[REDACTED:PRIVATE_KEY]``.  Returns ``(text, unresolved)``: *unresolved* is True only when a
+    real key body followed (a base64 line of >= _PK_BODY_STRONG chars), so a conversation that merely
+    MENTIONS the header text is kept instead of being dropped."""
+    out: List[str] = []
+    last = 0
+    unresolved = False
+    n = len(text)
+
+    def body_line(line: str) -> bool:
+        s = line.strip()
+        # short lines must be a whole base64 quantum so an ordinary word is not taken for key body
+        return bool(s) and bool(_PK_BODY_LINE.fullmatch(line)) and (len(s) >= 16 or len(s) % 4 == 0)
+
+    for m in _PK_RESIDUE.finditer(text):
+        if m.start() < last:
+            continue
+        end = m.end()
+        eol = text.find("\n", end)
+        eol = n if eol == -1 else eol
+        rest = text[end:eol]
+        lines = 0
+        if body_line(rest):
+            lines += 1
+            unresolved = unresolved or len(rest.strip()) >= _PK_BODY_STRONG
+            rest = ""
+        if not rest.strip():
+            pos = eol
+            while pos < n:
+                nl = text.find("\n", pos + 1)
+                nl = n if nl == -1 else nl
+                line = text[pos + 1:nl]
+                if not body_line(line):
+                    break
+                lines += 1
+                unresolved = unresolved or len(line.strip()) >= _PK_BODY_STRONG
+                pos = nl
+            end = pos
+        unresolved = unresolved or lines >= _PK_BODY_LINES
+        out.append(text[last:m.start()])
+        out.append(marker("PRIVATE_KEY"))
+        last = end
+        counts["PRIVATE_KEY"] += 1
+        pattern_counts["pem_residue"] += 1
+    if not out:
+        return text, False
+    out.append(text[last:])
+    return "".join(out), unresolved
+
+
 def _entropy_pass(text: str, hits: List[dict]) -> None:
     for m in _TOKEN.finditer(text):
         tokv = m.group()
-        keyword_before = bool(_SECRET_WORDS.search(text[max(0, m.start() - 40):m.start()]))
-        if not keyword_before and (_HEX40.fullmatch(tokv) or _HEX64.fullmatch(tokv) or _UUID.fullmatch(tokv)):
-            continue
+        before = text[max(0, m.start() - 60):m.start()]
+        keyword_before = bool(_SECRET_WORDS.search(before[-40:]))
+        if not keyword_before:
+            if _HEX40.fullmatch(tokv) or _HEX64.fullmatch(tokv) or _UUID.fullmatch(tokv):
+                continue
+            if before.endswith("#") or before.endswith("]("):
+                continue  # markdown anchor / link target (docs slugs), not a credential
+            if _HEXISH.fullmatch(tokv) and _BUILD_ID_CTX.search(before):
+                continue  # public build identifier (e.g. Next.js ``next-action`` header)
         ent = shannon_entropy(tokv)
         if ent < ENTROPY_THRESHOLD:
             continue
@@ -405,13 +509,14 @@ def redact_text(text: str, *, allowlist: Optional[Sequence[str]] = None,
     text = vaultlib.nfc(text)
     text, mapping = _protect(text, allow)
     text = _apply(text, pats, counts, pattern_counts, hints)
+    text, unresolved = _pk_residue_pass(text, counts, pattern_counts)
     text = _encoded_pass(text, pats, counts, pattern_counts)
     hits: List[dict] = []
     _entropy_pass(text, hits)
     text = _restore(text, mapping)
     allow_exact = frozenset(vaultlib.nfc(t) for t in allow if t)
     text = _apply(text, pats, counts, pattern_counts, hints, count_key="SECOND_PASS", skip_values=allow_exact)
-    unresolved = bool(_PK_RESIDUE.search(text))
+    unresolved = unresolved or bool(_PK_RESIDUE.search(text))
     return RedactResult(
         text=text,
         counts=dict(counts),

@@ -164,6 +164,34 @@ class TestVerifyNegative(unittest.TestCase):
             self.assertEqual(data["result"], "FAIL")
             self.assertNotIn(value, report.read_text(encoding="utf-8"))
 
+    def test_json_escapes_do_not_trigger_false_positives(self):
+        with tempfile.TemporaryDirectory() as d:
+            payload = {"note": "prefix\n@example.org", "msg": "label:\nnextline"}
+            put(d, "ledger.part001.json", json.dumps(payload, ensure_ascii=False))
+            rc, out = run_verifier(d)
+            self.assertEqual(rc, 0, out)
+            self.assertIn("VERIFY: CLEAN", out)
+
+    def test_json_real_secrets_in_value_or_kv_pair_still_fail(self):
+        with tempfile.TemporaryDirectory() as d:
+            put(d, "bad1.json", json.dumps({"email": fake_email()}))
+            rc, out = run_verifier(d)
+            self.assertEqual(rc, 1, out)
+            self.assertIn("SECRET_PATTERN:EMAIL", out)
+        with tempfile.TemporaryDirectory() as d:
+            put(d, "bad2.json", json.dumps({"password": "MyRealSecret999!"}))
+            rc, out = run_verifier(d)
+            self.assertEqual(rc, 1, out)
+            self.assertIn("SECRET_PATTERN:KV_SECRET", out)
+
+    def test_json_partial_diff_hunk_unescapes_safely(self):
+        pats = vns._scan_patterns()
+        clean_hunk = '"note": "line1\\n@example.org",\n"label": "token:\\nnextword"\n'
+        self.assertEqual(vns.scan_content("part.json", clean_hunk, pats, allow_partial_json=True), [])
+        dirty_hunk = '"note": "' + fake_github_pat() + '",\n'
+        hits = vns.scan_content("part.json", dirty_hunk, pats, allow_partial_json=True)
+        self.assertTrue(any(cat == "GITHUB_TOKEN" for _, cat, _ in hits), hits)
+
 
 if __name__ == "__main__":
     unittest.main()

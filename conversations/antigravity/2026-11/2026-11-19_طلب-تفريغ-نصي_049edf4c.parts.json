@@ -1,0 +1,30 @@
+{
+  "source": "2026-11-19_طلب-تفريغ-نصي_049edf4c",
+  "ext": ".md",
+  "max_bytes": 1048576,
+  "count": 4,
+  "parts": [
+    {
+      "file": "2026-11-19_طلب-تفريغ-نصي_049edf4c.part001.md",
+      "bytes": 1033453,
+      "sha256": "f7ce1a6085b886717ddce4455810c8a9bd56c5fa80c5277a10ca9ae483dcb9c7"
+    },
+    {
+      "file": "2026-11-19_طلب-تفريغ-نصي_049edf4c.part002.md",
+      "bytes": 1034001,
+      "sha256": "c7df083bcba648c24f2bf8266487e76aa02740c78ca4f5b9e387bbf616295327"
+    },
+    {
+      "file": "2026-11-19_طلب-تفريغ-نصي_049edf4c.part003.md",
+      "bytes": 1048053,
+      "sha256": "d5756ed6e789484ec719724f2cf24ba21439d1e8ad9a5171259b41284c378a0b"
+    },
+    {
+      "file": "2026-11-19_طلب-تفريغ-نصي_049edf4c.part004.md",
+      "bytes": 384982,
+      "sha256": "a3644035db10d4526d12556bbf3bc3fdd0936bfd3d7b268fc7ae31b3090ff7ed"
+    }
+  ],
+  "total_bytes": 3500489,
+  "oversize_warnings": []
+}

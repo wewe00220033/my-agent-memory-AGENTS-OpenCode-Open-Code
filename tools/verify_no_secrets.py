@@ -74,6 +74,8 @@ SQLITE_HEADER = b"SQLite format 3\x00"
 _NOREPLY_EMAIL = re.compile(r"^[A-Za-z0-9._%+\-]+@users\.noreply\.github\.com$")
 _COMMIT_LINE = re.compile(r"^commit ([0-9a-f]{40})", re.M)
 _DIFF_LINE = re.compile(r"^diff --git a/(.+?) b/(.+?)$", re.M)
+_JSON_ESC_RX = re.compile(r'\\([\\/"bfnrt]|u[0-9a-fA-F]{4})')
+_JSON_ESC_MAP = {"\\": "\\", '"': '"', "/": "/", "b": " ", "f": " ", "n": "\n", "r": "\n", "t": "\t"}
 
 
 @dataclass
@@ -185,6 +187,59 @@ def find_secret_matches(text: str, patterns: Optional[Sequence[redact.Pattern]] 
     return sorted(set(hits))
 
 
+def _unescape_json_partial(text: str) -> str:
+    """Decode JSON string escapes inside partial diff hunks so ``\\n@x`` never glues into ``n@x``."""
+    def _sub(m: re.Match) -> str:
+        tok = m.group(1)
+        if tok.startswith("u"):
+            return chr(int(tok[1:], 16))
+        return _JSON_ESC_MAP[tok]
+
+    return _JSON_ESC_RX.sub(_sub, text)
+
+
+def _find_json_secret_matches(text: str, pats: Sequence[redact.Pattern],
+                              allow_partial: bool = False) -> List[Tuple[int, str, str]]:
+    """Scan JSON keys, string values and (key, value) pairs in unescaped form; fail closed on invalid JSON."""
+    try:
+        obj = json.loads(text)
+    except ValueError:
+        body = _unescape_json_partial(text) if allow_partial else text
+        return find_secret_matches(body, pats)
+
+    hits: List[Tuple[int, str, str]] = []
+    stack: List[object] = [obj]
+    while stack:
+        cur = stack.pop()
+        if isinstance(cur, str):
+            for _ln, cat, name in find_secret_matches(cur, pats):
+                hits.append((1, cat, name))
+        elif isinstance(cur, list):
+            stack.extend(cur)
+        elif isinstance(cur, dict):
+            for k, val in cur.items():
+                sk = str(k)
+                for _ln, cat, name in find_secret_matches(sk, pats):
+                    hits.append((1, cat, name))
+                if isinstance(val, str) and val:
+                    for seg in val.splitlines():
+                        if seg:
+                            pair = json.dumps({sk: seg}, ensure_ascii=False)
+                            for _ln, cat, name in find_secret_matches(pair, pats):
+                                hits.append((1, cat, name))
+                stack.append(val)
+    return sorted(set(hits))
+
+
+def scan_content(rel: str, text: str, patterns: Sequence[redact.Pattern],
+                 allow_partial_json: bool = False) -> List[Tuple[int, str, str]]:
+    """Dispatch text or JSON-aware secret scanning based on *rel*."""
+    pats = patterns_for(rel, patterns)
+    if rel.lower().endswith(".json"):
+        return _find_json_secret_matches(text, pats, allow_partial=allow_partial_json)
+    return find_secret_matches(text, pats)
+
+
 # --------------------------------------------------------------------------- tree checks
 
 def check_file(root: Path, rel: str, patterns: Sequence[redact.Pattern]) -> List[Violation]:
@@ -219,7 +274,7 @@ def check_file(root: Path, rel: str, patterns: Sequence[redact.Pattern]) -> List
         return v
     except OSError as exc:
         return [Violation("UNREADABLE", rel, detail=type(exc).__name__)]
-    for line, cat, name in find_secret_matches(text, patterns_for(rel, patterns)):
+    for line, cat, name in scan_content(rel, text, patterns):
         v.append(Violation("SECRET_PATTERN", rel, line, cat, "pattern=" + name))
     return v
 
@@ -296,7 +351,7 @@ def check_history(root: Path, patterns: Sequence[redact.Pattern],
             if is_self_exempt(path):
                 continue
             seen = set()
-            for _line, cat, name in find_secret_matches(_added_lines(body), patterns_for(path, patterns)):
+            for _line, cat, name in scan_content(path, _added_lines(body), patterns, allow_partial_json=True):
                 if (cat, name) in seen:
                     continue
                 seen.add((cat, name))

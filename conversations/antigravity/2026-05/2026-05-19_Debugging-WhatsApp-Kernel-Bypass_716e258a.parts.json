@@ -1,0 +1,20 @@
+{
+  "source": "2026-05-19_Debugging-WhatsApp-Kernel-Bypass_716e258a",
+  "ext": ".md",
+  "max_bytes": 1048576,
+  "count": 2,
+  "parts": [
+    {
+      "file": "2026-05-19_Debugging-WhatsApp-Kernel-Bypass_716e258a.part001.md",
+      "bytes": 1046718,
+      "sha256": "602da643107a969b9d58562448cf65120908fb987713003cdfc995ced167b18d"
+    },
+    {
+      "file": "2026-05-19_Debugging-WhatsApp-Kernel-Bypass_716e258a.part002.md",
+      "bytes": 29203,
+      "sha256": "7a43693772aed988ba136ba2a724bb73a48a6363607a3ef7c9b214f86a3a2955"
+    }
+  ],
+  "total_bytes": 1075921,
+  "oversize_warnings": []
+}

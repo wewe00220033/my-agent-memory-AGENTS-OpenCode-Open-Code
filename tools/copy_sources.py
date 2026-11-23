@@ -265,13 +265,15 @@ def copy_tree(src_root, dst_root, *, include_exts: Optional[Iterable[str]] = Non
     report = CopyReport()
     cands: List[_Candidate] = []
     for rel in _iter_sources(src_root):
-        if _excluded(rel, exclude_globs):
-            continue
+        # Denylist is checked BEFORE exclude globs so a denied file is always reported by name
+        # in the manifest instead of being silently dropped by a matching glob (T2.1).
         if redact.is_denied_path(rel, "READ"):
             report.skipped_deny_read.append(_safe(rel))  # never opened
             continue
         if redact.is_denied_path(rel, "COPY"):
             report.skipped_deny_copy.append(_safe(rel))
+            continue
+        if _excluded(rel, exclude_globs):
             continue
         if exts is not None and Path(rel).suffix.lower() not in exts:
             continue

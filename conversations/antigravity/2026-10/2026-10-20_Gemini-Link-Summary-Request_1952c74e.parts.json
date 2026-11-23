@@ -1,0 +1,20 @@
+{
+  "source": "2026-10-20_Gemini-Link-Summary-Request_1952c74e",
+  "ext": ".md",
+  "max_bytes": 1048576,
+  "count": 2,
+  "parts": [
+    {
+      "file": "2026-10-20_Gemini-Link-Summary-Request_1952c74e.part001.md",
+      "bytes": 1039389,
+      "sha256": "85cab5a205613fa9e15f1a4513db65311092efe61ad2dd7cf40fc8892b70f337"
+    },
+    {
+      "file": "2026-10-20_Gemini-Link-Summary-Request_1952c74e.part002.md",
+      "bytes": 87931,
+      "sha256": "0fe21a54bc082e5258cdb3f41ba76c403c029543ce9b3c63bc1524fd6b841097"
+    }
+  ],
+  "total_bytes": 1127320,
+  "oversize_warnings": []
+}

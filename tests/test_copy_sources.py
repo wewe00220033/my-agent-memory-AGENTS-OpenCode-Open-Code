@@ -113,6 +113,13 @@ class TestCopySources(unittest.TestCase):
         self.assertEqual(rep.skipped_dedupe, [{"src": "old/a.md", "kept": "new/a.md"}])
         self.assertEqual(tree_files(self.dst), ["manifest.json", "new/a.md"])
 
+    def test_deny_read_reported_even_when_exclude_glob_matches(self):
+        put(self.src, "keys.md", "k\n")
+        put(self.src, "ok.md", "fine\n")
+        rep = cs.copy_tree(self.src, self.dst, exclude_globs=["keys*"])
+        self.assertEqual(rep.skipped_deny_read, ["keys.md"])  # never silently dropped by a glob
+        self.assertEqual([c["src"] for c in rep.copied], ["ok.md"])
+
     def test_unresolved_private_key_skipped(self):
         put(self.src, "broken.md", "intro\n" + open_pem_block())
         put(self.src, "fine.md", "ok\n")

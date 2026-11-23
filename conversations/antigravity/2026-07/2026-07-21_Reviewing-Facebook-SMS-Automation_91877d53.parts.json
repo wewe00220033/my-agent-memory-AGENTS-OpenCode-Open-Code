@@ -1,0 +1,20 @@
+{
+  "source": "2026-07-21_Reviewing-Facebook-SMS-Automation_91877d53",
+  "ext": ".md",
+  "max_bytes": 1048576,
+  "count": 2,
+  "parts": [
+    {
+      "file": "2026-07-21_Reviewing-Facebook-SMS-Automation_91877d53.part001.md",
+      "bytes": 1033831,
+      "sha256": "faf67ee2875d35493113bc798146993c4fe360d3eeac14aa2e990871da3bbfbd"
+    },
+    {
+      "file": "2026-07-21_Reviewing-Facebook-SMS-Automation_91877d53.part002.md",
+      "bytes": 66686,
+      "sha256": "11bf0828be948bf20030ee0855d1a65c3cffb57af1cd535c7d5db780a92be982"
+    }
+  ],
+  "total_bytes": 1100517,
+  "oversize_warnings": []
+}
